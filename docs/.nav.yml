@@ -1,0 +1,34 @@
+
+preserve_directory_names: true
+
+flatten_single_child_sections: false
+
+ignore: "*.hidden.md"
+
+sort:
+  direction: asc
+  type: natural
+  by: filename
+  sections: last
+  ignore_case: true
+
+nav:
+  - Home:
+    - "ICX360": index.md
+    - "Contributing": CONTRIBUTING.md
+  - Examples:
+    - Examples: examples/index.md
+    - 🚀 Quickstart:
+      - "MExGen Quick Start": examples/mexgen/quick_start.ipynb
+      - "CELL Quick Start": examples/cell/quick_start.ipynb
+      - "Token Highlighter Jailbreak Quick Start": examples/th/quick_start.ipynb
+    - 🔍 MExGen:
+      - "MExGen for Question Answering": examples/mexgen/question_answering.ipynb
+      - "MExGen for Retrieval Augmented Generation": examples/mexgen/RAG.ipynb
+      - "MExGen for Summarization": examples/mexgen/summarization.ipynb
+    - 🔍 CELL:
+      - "CELL for Natural Language Generation": examples/cell/natural_language_generation.ipynb
+    - 🔍 Token Highlighter:
+      - "Token Highlighter Jailbreak": examples/th/LLM_jailbreak.ipynb
+  - Python Reference:
+      - Library commands: reference/library_reference.md
