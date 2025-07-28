@@ -1,0 +1,62 @@
+[project]
+name            = "icx360"
+version         = "0.1.0"
+description     = "In-Context Explainability 360 Toolkit"
+readme          = "README.md"
+license         = { text = "Apache-2.0" }
+
+authors         = [{ name = "IBM Research" }]
+maintainers     = [
+    { name = "ibm", email = "ibm@ibm.com" }
+]
+
+requires-python = ">=3.11,<3.13"
+
+# core
+dependencies = [
+	"numpy",
+	"transformers",
+	"torch>=2.0",
+	"jupyterlab",
+	"notebook",
+	"evaluate",
+	"bert_score",
+	"nltk",
+	"sentencepiece",
+	"protobuf",
+	"toma",
+	"sentence-transformers",
+	"spacy",
+	"en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+ 	"en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl",
+	"pytest",
+	"python-dotenv>=1.1.0,<2.0.0",
+	"openai>=1.86.0,<2.0.0",
+	"datasets<4.0.0",
+    "accelerate",
+	"detect-secrets @ git+https://github.com/ibm/detect-secrets.git@master#egg=detect-secrets",
+	"pre-commit"
+]
+
+[tool.setuptools.packages]
+find = {}
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+	"vllm: marks tests as requiring a VLLM server (deselect with '-m \"not vllm\"')",
+]
+
+# optional groups
+[project.optional-dependencies]
+docs = [
+    "mkdocs-material",
+    "mkdocs-jupyter",
+    "mkdocs-click",
+    "mkdocs-include",
+    "mkdocstrings[python]",
+    "griffe_inherited_docstrings",
+    "griffe-pydantic",
+    "mkdocs-awesome-nav",
+    "mkdocs-include-markdown-plugin",
+]

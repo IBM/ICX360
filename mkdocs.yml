@@ -1,0 +1,88 @@
+site_name: ICX360
+site_url: https://ibm.github.io/ICX360/
+repo_name: IBM/ICX360
+repo_url: https://github.com/IBM/ICX360
+
+theme:
+  name: material
+  docs_dir: docs
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      scheme: default
+      primary: black
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  favicon: assets/icx360_logos/png/lightmode_icx_favicon.png
+  logo: assets/icx360_logos/png/lightmode_icx_favicon.png
+
+  features:
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+    - announce.dismiss
+    - navigation.footer
+    - navigation.tabs
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - toc.follow
+
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - mkdocs-click
+  - md_in_html
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+plugins:
+  - awesome-nav:
+      filename: .nav.yml
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            extensions:
+            - griffe_inherited_docstrings
+            preload_modules:
+              - icx360
+  - mkdocs-jupyter
+  - search
+  - include-markdown
+
+extra_css:
+  - stylesheets/extra.css
