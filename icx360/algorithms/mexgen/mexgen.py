@@ -115,7 +115,8 @@ class MExGenExplainer(LocalBBExplainer):
             input_orig (List[str]):
                 Original input segmented into units.
             output_orig (str or List[str] or icx360.utils.model_wrappers.GeneratedOutput or None):
-                Output for original input if provided, otherwise None.
+                Output for original input.
+                Can be a single unit (str), segmented into units (List[str]), a GeneratedOutput object, or None.
             model_params (dict):
                 Additional keyword arguments for model generation (for the self.model.generate() method).
 
@@ -130,11 +131,8 @@ class MExGenExplainer(LocalBBExplainer):
             # Generate output for original input
             output_orig = self.model.generate([input_orig], text_only=False, **model_params)
         elif type(output_orig) in (str, list):
-            if type(output_orig) is str:
-                output_orig = [output_orig]
-
             # Wrap output text in a GeneratedOutput object
-            output_orig = GeneratedOutput(output_text=output_orig)
+            output_orig = GeneratedOutput(output_text=[output_orig])
 
             if isinstance(self.model, HFModel):
                 # Also include output token IDs for HFModel

@@ -51,7 +51,8 @@ class CLIME(MExGenExplainer):
                     "n" for not to be perturbed/attributed to.
                 If str, applies to all units in input_orig, otherwise unit-specific.
             output_orig (str or List[str] or icx360.utils.model_wrappers.GeneratedOutput or None):
-                [output] Output for original input if provided, otherwise None.
+                [output] Output for original input.
+                Can be a single unit (str), segmented into units (List[str]), a GeneratedOutput object, or None.
             ind_segment (bool or List[bool]):
                 [segmentation] Whether to segment input text.
                 If bool, applies to all units; if List[bool], applies to each unit individually.
