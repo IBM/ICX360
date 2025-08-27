@@ -163,9 +163,9 @@ class PerturbCurveEvaluator:
         else:
             # Convert to dictionary
             if isinstance(self.scalarized_model, ProbScalarizedModel):
-                output_perturbed = {"prob": output_perturbed.cpu()}
+                output_perturbed = {"prob": output_perturbed.cpu().squeeze()}
             else:
-                output_perturbed = {"score": output_perturbed.cpu()}
+                output_perturbed = {"score": output_perturbed.cpu().squeeze()}
         # Add fractions to dictionary
         output_perturbed["frac"] = torch.tensor(frac_perturbed)
 
