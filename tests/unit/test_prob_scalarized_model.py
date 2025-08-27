@@ -15,7 +15,7 @@ def test_scalarize_output(wrapped_model, tiny_model_prompts):
 
     # Reference output for scalarization
     if isinstance(wrapped_model, HFModel):
-        ref_output = GeneratedOutput(output_ids=torch.LongTensor([[1, 2, 3]]))
+        ref_output = GeneratedOutput(output_ids=torch.LongTensor([[1, 2, 3]]), output_text=[""])
     elif isinstance(wrapped_model, VLLMModel):
         ref_output = GeneratedOutput(output_text=["Hello! How can I help you?"])
 
