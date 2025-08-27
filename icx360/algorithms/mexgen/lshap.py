@@ -107,6 +107,7 @@ class LSHAP(MExGenExplainer):
 
         # 2) Generate output for original input or wrap provided output
         output_orig = self.generate_or_wrap_output(input_orig, output_orig, model_params)
+        num_output_units = 1 if type(output_orig.output_text[0]) is str else len(output_orig.output_text[0])
 
         # 3) Initialize quantities
         # Initialize importance scores
@@ -116,7 +117,7 @@ class LSHAP(MExGenExplainer):
             for key in self.scalarized_model.sim_scores:
                 importance_scores[key] = np.zeros(num_units)
         else:
-            importance_scores = np.zeros(num_units)
+            importance_scores = np.zeros((num_units, num_output_units))
 
         # Initialize quantities associated with units of interest
         idx_replace_i = [None] * len(idx_interest)
@@ -188,26 +189,26 @@ class LSHAP(MExGenExplainer):
                     importance_scores[key][idx_interest[i]] = np.inner(scalar_outputs_excl_interest - scalar_outputs_incl_interest, 1 / normalization)
 
             else:
-                # Extract scalarized output corresponding to original input/empty subset
-                scalar_output_orig = scalar_outputs[0].item()
+                # Extract scalarized output(s) corresponding to original input/empty subset
+                scalar_output_orig = scalar_outputs[[0]].cpu().numpy()
                 # Extract scalarized outputs for this unit of interest
                 scalar_outputs_excl_interest = scalar_outputs[idx_excl_interest].cpu().numpy()
                 scalar_outputs_incl_interest = scalar_outputs[idx_incl_interest].cpu().numpy()
                 # Prepend output corresponding to empty subset
-                scalar_outputs_excl_interest = np.append(scalar_output_orig, scalar_outputs_excl_interest)
+                scalar_outputs_excl_interest = np.append(scalar_output_orig, scalar_outputs_excl_interest, axis=0)
 
                 # 9) Compute Shapley values
                 normalization = get_normalization_constants(len(idx_replace_i[i]), max_units_replace) * (max_units_replace + 1)
-                importance_scores[idx_interest[i]] = np.inner(scalar_outputs_excl_interest - scalar_outputs_incl_interest, 1 / normalization)
+                importance_scores[idx_interest[i]] = np.dot(1 / normalization, scalar_outputs_excl_interest - scalar_outputs_incl_interest)
 
         # 10) Construct output dictionary
         if type(importance_scores) is not dict:
             # Convert importance_scores to dictionary
             if isinstance(self.scalarized_model, ProbScalarizedModel):
                 # Label scores with type of scalarizer
-                importance_scores = {"prob": importance_scores}
+                importance_scores = {"prob": importance_scores.squeeze()}
             else:
-                importance_scores = {"score": importance_scores}
+                importance_scores = {"score": importance_scores.squeeze()}
         # Add items to importance_scores dictionary
         importance_scores["units"] = input_orig
         importance_scores["unit_types"] = unit_types
