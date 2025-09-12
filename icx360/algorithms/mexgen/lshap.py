@@ -32,7 +32,7 @@ class LSHAP(MExGenExplainer):
             based on the model's inputs or outputs.
     """
     def explain_instance(self, input_orig, unit_types="p", ind_interest=None, output_orig=None,
-                         ind_segment=True, segment_type="s", max_phrase_length=10,
+                         ind_segment=True, segment_type="s", max_phrase_length=10, segment_type_output=None,
                          model_params={}, scalarize_params={},
                          num_neighbors=2, max_units_replace=2, replacement_str=""):
         """
@@ -62,6 +62,9 @@ class LSHAP(MExGenExplainer):
                 [segmentation] Type of units to segment into: "s" for sentences, "w" for words, "ph" for phrases.
             max_phrase_length (int):
                 [segmentation] Maximum phrase length in terms of spaCy tokens (default 10).
+            segment_type_output (str or None):
+                [segmentation] Type of units to segment output text into:
+                "s" for sentences, "ph" for phrases, None for no segmentation.
             model_params (dict):
                 Additional keyword arguments for model generation (for the self.model.generate() method).
             scalarize_params (dict):
@@ -107,6 +110,8 @@ class LSHAP(MExGenExplainer):
 
         # 2) Generate output for original input or wrap provided output
         output_orig = self.generate_or_wrap_output(input_orig, output_orig, model_params)
+        # Segment output text if needed
+        output_orig = self.segment_output(output_orig, segment_type_output, max_phrase_length)
         num_output_units = 1 if type(output_orig.output_text[0]) is str else len(output_orig.output_text[0])
 
         # 3) Initialize quantities

@@ -32,7 +32,7 @@ class CLIME(MExGenExplainer):
             based on the model's inputs or outputs.
     """
     def explain_instance(self, input_orig, unit_types="p", output_orig=None,
-                         ind_segment=True, segment_type="s", max_phrase_length=10,
+                         ind_segment=True, segment_type="s", max_phrase_length=10, segment_type_output=None,
                          model_params={}, scalarize_params={},
                          oversampling_factor=10, max_units_replace=2, empty_subset=True, replacement_str="",
                          num_nonzeros=None, debias=True):
@@ -60,6 +60,9 @@ class CLIME(MExGenExplainer):
                 [segmentation] Type of units to segment into: "s" for sentences, "w" for words, "ph" for phrases.
             max_phrase_length (int):
                 [segmentation] Maximum phrase length in terms of spaCy tokens (default 10).
+            segment_type_output (str or None):
+                [segmentation] Type of units to segment output text into:
+                "s" for sentences, "ph" for phrases, None for no segmentation.
             model_params (dict):
                 Additional keyword arguments for model generation (for the self.model.generate() method).
             scalarize_params (dict):
@@ -102,6 +105,8 @@ class CLIME(MExGenExplainer):
 
         # 2) Generate output for original input or wrap provided output
         output_orig = self.generate_or_wrap_output(input_orig, output_orig, model_params)
+        # Segment output text if needed
+        output_orig = self.segment_output(output_orig, segment_type_output, max_phrase_length)
 
         # 3) Enumerate subsets of units that will be perturbed/replaced
         idx_replace = (np.array(unit_types) != "n").nonzero()[0]

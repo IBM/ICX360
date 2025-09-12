@@ -143,3 +143,28 @@ class MExGenExplainer(LocalBBExplainer):
             raise TypeError("output_orig must be a str, List[str], GeneratedOutput, or None.")
 
         return output_orig
+
+    def segment_output(self, output_orig, segment_type_output=None, max_phrase_length=10):
+        """
+        Segment output text (if needed).
+
+        Args:
+            output_orig (icx360.utils.model_wrappers.GeneratedOutput):
+                Object containing output for original input, in particular output text (output_orig.output_text).
+            segment_type_output (str or None):
+                Type of units to segment into: "s" for sentences, "ph" for phrases, None for no segmentation.
+            max_phrase_length (int):
+                Maximum phrase length in terms of spaCy tokens (default 10).
+
+        Returns:
+            output_orig (icx360.utils.model_wrappers.GeneratedOutput):
+                Output object with possibly segmented text.
+        """
+        if type(output_orig.output_text[0]) is str and segment_type_output is not None:
+            # Output text not already segmented and segmentation requested, call segmenter
+            output_orig.output_text[0], _, _ = self.segmenter.segment_units(output_orig.output_text[0],
+                                                                            unit_types="p",
+                                                                            segment_type=segment_type_output,
+                                                                            max_phrase_length=max_phrase_length)
+
+        return output_orig
