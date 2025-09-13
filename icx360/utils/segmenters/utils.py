@@ -21,11 +21,36 @@ def exclude_non_alphanumeric(unit_types, units):
     """
     # Check whether units that can be replaced have alphanumeric characters
     for u, unit in enumerate(units):
-        if unit_types[u] != "n" and not any(c.isalnum() for c in unit):
+        if unit_types[u] != "n" and not isalnum_string(unit):
             unit_types[u] = "n"
 
     return unit_types
 
+def isalnum_string(string):
+    # Check whether string contains any alphanumeric characters
+    return any(c.isalnum() for c in string)
+
+def merge_non_alphanumeric(units):
+    """
+    Merge non-alphanumeric units into adjacent units.
+
+    Args:
+        units (List[str]):
+            List of units.
+
+    Returns:
+        units_merged (List[str]):
+            List of units with non-alphanumeric units merged.
+    """
+    units_merged = []
+    for unit in units:
+        if units_merged and (not isalnum_string(unit) or not isalnum_string(units_merged[-1])):
+            # Current unit or previous unit is not alphanumeric, merge with previous unit
+            units_merged[-1] += unit
+        else:
+            units_merged.append(unit)
+
+    return units_merged
 
 def find_unit_boundaries(units, tokens):
     """
