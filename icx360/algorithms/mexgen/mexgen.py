@@ -12,7 +12,7 @@ The MExGen framework is described in:
 from icx360.algorithms.lbbe import LocalBBExplainer
 from icx360.utils.model_wrappers import GeneratedOutput, HFModel
 from icx360.utils.scalarizers import ProbScalarizedModel, TextScalarizedModel
-from icx360.utils.segmenters import SpaCySegmenter, exclude_non_alphanumeric
+from icx360.utils.segmenters import SpaCySegmenter, exclude_non_alphanumeric, merge_non_alphanumeric
 
 
 class MExGenExplainer(LocalBBExplainer):
@@ -166,5 +166,8 @@ class MExGenExplainer(LocalBBExplainer):
                                                                             unit_types="p",
                                                                             segment_type=segment_type_output,
                                                                             max_phrase_length=max_phrase_length)
+
+        # Merge non-alphanumeric units into adjacent units
+        output_orig.output_text[0] = merge_non_alphanumeric(output_orig.output_text[0])
 
         return output_orig
