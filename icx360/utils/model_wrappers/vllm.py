@@ -36,7 +36,7 @@ class VLLMModel(Model):
         self._model_name = model_name
         self._tokenizer = tokenizer
 
-    def convert_input(self, inputs, chat_template=False, system_prompt=None, **kwargs):
+    def convert_input(self, inputs, chat_template=False, system_prompt=None, unit_ranges=None, **kwargs):
         """
         Convert input(s) into a list of strings.
 
@@ -47,6 +47,8 @@ class VLLMModel(Model):
                 Whether to apply chat template.
             system_prompt (str or None):
                 System prompt to include in chat template.
+            unit_ranges (dict or None):
+                Mapping from chat template parts to ranges of input units.
 
         Returns:
             inputs (List[str]):
@@ -55,30 +57,83 @@ class VLLMModel(Model):
         if isinstance(inputs, str):
             # Single input text, convert to list
             inputs = [inputs]
-        elif isinstance(inputs, list):
-            if isinstance(inputs[0], list):
-                # Join segmented texts
-                inputs = ["".join(inp) for inp in inputs]
-        else:
+        elif not isinstance(inputs, list):
             raise TypeError("Inputs must be a string or list for VLLMModel")
 
         if chat_template:
             if self._tokenizer is None:
                 raise TypeError("HuggingFace tokenizer must be provided to apply chat template")
 
-            # Construct chat messages
-            if system_prompt is not None:
-                messages = [[{"role": "system", "content": system_prompt},
-                             {"role": "user", "content": inp}] for inp in inputs]
+            if isinstance(inputs, list) and isinstance(inputs[0], list) and unit_ranges is not None:
+                # Inputs are segmented into units and a mapping from chat template parts to units is given
+                inputs = self._construct_chat_template_from_mapping(inputs, unit_ranges)
             else:
-                messages = [[{"role": "user", "content": inp}] for inp in inputs]
+                if isinstance(inputs, list) and isinstance(inputs[0], list):
+                    # Inputs are segmented into units but no mapping given, just join units
+                    inputs = ["".join(inp) for inp in inputs]
 
-            # Apply chat template
-            inputs = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+                # Construct chat messages, placing each input into a single user message
+                if system_prompt is not None:
+                    messages = [[{"role": "system", "content": system_prompt},
+                                {"role": "user", "content": inp}] for inp in inputs]
+                else:
+                    messages = [[{"role": "user", "content": inp}] for inp in inputs]
+
+                # Apply chat template
+                inputs = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
 
         return inputs
 
-    def generate(self, inputs, chat_template=False, system_prompt=None, text_only=True, **kwargs):
+    def _construct_chat_template_from_mapping(self, inputs, unit_ranges):
+        """
+        Construct chat template given mapping from parts of the chat template to input units.
+
+        Args:
+            inputs (List[List[str]]):
+                A list of input texts segmented into units.
+            unit_ranges (dict):
+                Mapping from chat template parts to ranges of input units.
+
+        Returns:
+            inputs_formatted (List[str]):
+                List of inputs formatted according to chat template.
+        """
+        inputs_formatted = []
+        # Iterate over inputs
+        for inp in inputs:
+
+            # Construct conversation turn by turn
+            conversation = []
+            for turn_ranges in unit_ranges["conversation"]:
+                turn = {}
+                for key, rng in turn_ranges.items():
+                    # There should be only one range per turn
+                    turn["role"] = key
+                    turn["content"] = "".join(inp[rng[0] : rng[1]])
+                conversation.append(turn)
+
+            if "documents" in unit_ranges:
+                # Construct documents
+                documents = []
+                for doc_id, doc_ranges in enumerate(unit_ranges["documents"]):
+                    document = {"doc_id": doc_id + 1}
+                    for key, rng in doc_ranges.items():
+                        # Document text and possibly a title
+                        document[key] = "".join(inp[rng[0] : rng[1]])
+                    documents.append(document)
+            else:
+                documents = None
+
+            # Construct chat template from conversation and documents
+            input_formatted = self._tokenizer.apply_chat_template(conversation,
+                                                                  documents=documents,
+                                                                  add_generation_prompt=True,
+                                                                  tokenize=False)
+            inputs_formatted.append(input_formatted)
+
+        return inputs_formatted
+
+    def generate(self, inputs, chat_template=False, system_prompt=None, text_only=True, unit_ranges=None, **kwargs):
         """
         Generate response from model.
 
@@ -91,6 +146,8 @@ class VLLMModel(Model):
                 System prompt to include in chat template.
             text_only (bool):
                 Return only generated text (default) or an object containing additional outputs.
+            unit_ranges (dict or None):
+                Mapping from chat template parts to ranges of input units.
             **kwargs (dict):
                 Additional keyword arguments for VLLM model.
 
@@ -101,7 +158,7 @@ class VLLMModel(Model):
                     output_text: List of generated texts.
         """
         # Convert input into list of strings if needed
-        inputs = self.convert_input(inputs, chat_template, system_prompt)
+        inputs = self.convert_input(inputs, chat_template, system_prompt, unit_ranges)
 
         # Generate output
         output_text = []
