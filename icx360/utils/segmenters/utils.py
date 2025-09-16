@@ -99,4 +99,13 @@ def find_unit_boundaries(units, tokens):
     # Ending index of last unit
     boundaries.append(len(tokens))
 
-    return boundaries
+    # Filter out repeated boundaries
+    boundaries_filtered = []
+    for u, boundary in enumerate(boundaries[:-1]):
+        if boundary == boundaries[u + 1]:
+            print(f"Unit {u} has zero length in terms of tokens, skipping")
+        else:
+            boundaries_filtered.append(boundary)
+    boundaries_filtered.append(boundaries[-1])
+
+    return boundaries_filtered
