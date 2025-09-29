@@ -262,7 +262,9 @@ def fit_linear_model(features, target, sample_weights, num_nonzeros, debias):
                 # Compute intercept to account for centering
                 intercept[u] = target_mean[u] - coef[:, u] @ features_mean
 
+    if num_output_units == 1:
+        coef, intercept = coef.squeeze(), intercept.squeeze()
     # Actual number(s) of non-zero coefficients
     num_nonzeros = [len(active)] * num_output_units if type(active[0]) is int else map(len, active)
     # Negate coefficients so that important units have positive coefficients
-    return -coef.squeeze(), intercept.squeeze(), num_nonzeros
+    return -coef, intercept, num_nonzeros

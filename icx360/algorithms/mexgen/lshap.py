@@ -209,11 +209,13 @@ class LSHAP(MExGenExplainer):
         # 10) Construct output dictionary
         if type(importance_scores) is not dict:
             # Convert importance_scores to dictionary
+            if num_output_units == 1:
+                importance_scores = importance_scores.squeeze()
             if isinstance(self.scalarized_model, ProbScalarizedModel):
                 # Label scores with type of scalarizer
-                importance_scores = {"prob": importance_scores.squeeze()}
+                importance_scores = {"prob": importance_scores}
             else:
-                importance_scores = {"score": importance_scores.squeeze()}
+                importance_scores = {"score": importance_scores}
         # Add items to importance_scores dictionary
         importance_scores["units"] = input_orig
         importance_scores["unit_types"] = unit_types
