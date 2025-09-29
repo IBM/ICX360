@@ -81,6 +81,10 @@ class VLLMModel(Model):
 
                 # Apply chat template
                 inputs = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        else:
+            if isinstance(inputs, list) and isinstance(inputs[0], list):
+                # Join segmented units
+                inputs = ["".join(inp) for inp in inputs]
 
         return inputs
 
