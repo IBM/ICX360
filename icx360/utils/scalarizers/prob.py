@@ -95,9 +95,10 @@ class ProbScalarizedModel(Scalarizer):
         # Iterate over reference output units
         for u in range(num_output_units):
             # Transform probabilities
-            if transformation in ("log_prob_mean", "prob_geo_mean") and boundaries[u+1] > boundaries[u]:
-                # Mean of log probabilities (only if this unit has a non-zero number of tokens)
-                probs_transformed[:, u] = log_probs[:, boundaries[u]:boundaries[u+1]].mean(dim=1)
+            if transformation in ("log_prob_mean", "prob_geo_mean"):
+                if boundaries[u+1] > boundaries[u]:
+                    # Mean of log probabilities (only if this unit has a non-zero number of tokens)
+                    probs_transformed[:, u] = log_probs[:, boundaries[u]:boundaries[u+1]].mean(dim=1)
             elif transformation in ("log_prob_sum", "prob_prod"):
                 # Sum of log probabilities
                 probs_transformed[:, u] = log_probs[:, boundaries[u]:boundaries[u+1]].sum(dim=1)
