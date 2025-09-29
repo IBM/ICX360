@@ -72,27 +72,24 @@ def find_unit_boundaries(units, tokens):
         # More than one unit, find the ending index of each unit except the last
         idx_token = 0
         for u, unit in enumerate(units[:-1]):
-            unit_next = units[u + 1]
-            # Look for the current token in both the current unit and the next unit
+            # Look for the current token in the current unit
             token = tokens[idx_token].strip()
             idx_char = unit.find(token)
-            idx_char_next = unit_next.find(token)
             # Stay in current unit if token found there,
-            # or if also not found in next unit and current unit is still long enough
-            # The latter can happen with tokens that are split between units
+            # or if not found and current unit is still long enough
+            # The latter can happen with tokens that are split between units (the second half thereof)
             # or special tokens that cannot be found anywhere in the text
-            stay_in_unit = idx_char > -1 or (idx_char_next == -1 and len(unit) >= len(token))
+            stay_in_unit = idx_char > -1 or len(unit) >= len(token)
             while stay_in_unit:
                 # Token found or skipped, advance to next token
                 idx_token += 1
                 if idx_char > -1:
                     # Advance in the unit as well
                     unit = unit[idx_char + len(token):]
-                # Look for the next token in both the current unit and the next unit
+                # Look for the next token in the current unit
                 token = tokens[idx_token].strip()
                 idx_char = unit.find(token)
-                idx_char_next = unit_next.find(token)
-                stay_in_unit = idx_char > -1 or (idx_char_next == -1 and len(unit) >= len(token))
+                stay_in_unit = idx_char > -1 or len(unit) >= len(token)
             # Token not found, record ending index
             boundaries.append(idx_token)
 
