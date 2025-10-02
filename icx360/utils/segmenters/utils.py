@@ -80,7 +80,7 @@ def find_unit_boundaries(units, tokens):
             # The latter can happen with tokens that are split between units (the second half thereof)
             # or special tokens that cannot be found anywhere in the text
             stay_in_unit = idx_char > -1 or len(unit) >= len(token)
-            while stay_in_unit:
+            while stay_in_unit and idx_token < len(tokens) - 1:
                 # Token found or skipped, advance to next token
                 idx_token += 1
                 if idx_char > -1:
