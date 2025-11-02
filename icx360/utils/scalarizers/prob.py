@@ -182,7 +182,7 @@ class ProbScalarizedModel(Scalarizer):
 
         return log_probs, boundaries
 
-    def _compute_log_probs_vllm(self, inputs, ref_output, **kwargs):
+    def _compute_log_probs_vllm(self, inputs, ref_output, max_inputs_per_call=200, **kwargs):
         """
         Compute log probabilities of reference output tokens conditioned on inputs for a VLLMModel.
 
@@ -205,22 +205,38 @@ class ProbScalarizedModel(Scalarizer):
         kwargs["max_tokens"] = 0
         kwargs["echo"] = True
 
+        # Number of batch inference calls
+        num_calls = ceil(len(inputs) / max_inputs_per_call)
+
         # Call underlying VLLM model on inputs only to get their token lengths
-        completion = self.model._model.completions.create(model=self.model._model_name, prompt=inputs, **kwargs)
         input_lengths = []
-        for result in completion.choices:
-            input_lengths.append(len(result.logprobs.tokens))
+        for call in range(num_calls):
+            if num_calls > 1:
+                print(f"Call {call + 1} of {num_calls}")
+            completion = self.model._model.completions.create(
+                model=self.model._model_name,
+                prompt=inputs[call * max_inputs_per_call : (call + 1) * max_inputs_per_call],
+                **kwargs
+                )
+            for result in completion.choices:
+                input_lengths.append(len(result.logprobs.tokens))
 
         # Combined inputs + output
         combined_input_output = [inp + "".join(ref_output.output_text[0]) for inp in inputs]
 
         # Call VLLM model on combined inputs + output to get log probs
-        completion = self.model._model.completions.create(model=self.model._model_name, prompt=combined_input_output, **kwargs)
         log_probs = []
-        for i, result in enumerate(completion.choices):
-            log_probs.append(result.logprobs.token_logprobs[input_lengths[i]:])
+        for call in range(num_calls):
+            completion = self.model._model.completions.create(
+                model=self.model._model_name,
+                prompt=combined_input_output[call * max_inputs_per_call : (call + 1) * max_inputs_per_call],
+                **kwargs
+                )
+            for i, result in enumerate(completion.choices):
+                log_probs.append(result.logprobs.token_logprobs[input_lengths[call * max_inputs_per_call + i]:])
 
         # Find token boundaries of units of the reference output
-        boundaries = find_unit_boundaries(ref_output.output_text[0], result.logprobs.tokens[input_lengths[i]:])
+        boundaries = find_unit_boundaries(ref_output.output_text[0],
+                                          result.logprobs.tokens[input_lengths[call * max_inputs_per_call + i]:])
 
         return torch.tensor(log_probs), boundaries
