@@ -167,7 +167,7 @@ class MExGenExplainer(LocalBBExplainer):
                                                                             segment_type=segment_type_output,
                                                                             max_phrase_length=max_phrase_length)
 
-        # Merge non-alphanumeric units into adjacent units
-        output_orig.output_text[0] = merge_non_alphanumeric(output_orig.output_text[0])
+            # Merge non-alphanumeric units into adjacent units
+            output_orig.output_text[0] = merge_non_alphanumeric(output_orig.output_text[0])
 
         return output_orig
