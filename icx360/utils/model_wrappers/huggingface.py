@@ -37,7 +37,7 @@ class HFModel(Model):
         self._tokenizer = tokenizer
         self._device = model.device
 
-    def convert_input(self, inputs, chat_template=False, system_prompt=None, **kwargs):
+    def convert_input(self, inputs, chat_template=False, system_prompt=None, unit_ranges=None, **kwargs):
         """
         Encode input text as token IDs for HuggingFace model.
 
@@ -48,6 +48,8 @@ class HFModel(Model):
                 Whether to apply chat template.
             system_prompt (str or None):
                 System prompt to include in chat template.
+            unit_ranges (dict or None):
+                Mapping from chat template parts to ranges of input units.
             **kwargs (dict):
                 Additional keyword arguments for tokenizer.
 
@@ -60,37 +62,88 @@ class HFModel(Model):
             # Batch of strings, enable padding and truncation
             kwargs["padding"] = True
             kwargs["truncation"] = True
-            if isinstance(inputs[0], list):
-                if chat_template:
-                    # Join segmented strings
-                    inputs = ["".join(inp) for inp in inputs]
-                else:
-                    # Indicate to tokenizer that strings are segmented
-                    kwargs["is_split_into_words"] = True
+            if isinstance(inputs[0], list) and not chat_template:
+                # Indicate to tokenizer that strings are segmented
+                kwargs["is_split_into_words"] = True
 
         if chat_template:
-            # Construct chat messages
-            if isinstance(inputs, list):
-                if system_prompt is not None:
-                    messages = [[{"role": "system", "content": system_prompt},
-                                 {"role": "user", "content": inp}] for inp in inputs]
-                else:
-                    messages = [[{"role": "user", "content": inp}] for inp in inputs]
+            if isinstance(inputs, list) and isinstance(inputs[0], list) and unit_ranges is not None:
+                # Inputs are segmented into units and a mapping from chat template parts to units is given
+                messages, documents = self._construct_chat_template_from_mapping(inputs, unit_ranges)
             else:
-                if system_prompt is not None:
-                    messages = [{"role": "system", "content": system_prompt},
-                                {"role": "user", "content": inputs}]
+                if isinstance(inputs, list) and isinstance(inputs[0], list):
+                    # Inputs are segmented into units but no mapping given, just join units
+                    inputs = ["".join(inp) for inp in inputs]
+
+                # Construct chat messages
+                if isinstance(inputs, list):
+                    if system_prompt is not None:
+                        messages = [[{"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": inp}] for inp in inputs]
+                    else:
+                        messages = [[{"role": "user", "content": inp}] for inp in inputs]
                 else:
-                    messages = [{"role": "user", "content": inputs}]
+                    if system_prompt is not None:
+                        messages = [{"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": inputs}]
+                    else:
+                        messages = [{"role": "user", "content": inputs}]
+                documents = None
+
             # Encode chat
-            input_encoding = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_dict=True, **kwargs).to(self._device)
+            input_encoding = self._tokenizer.apply_chat_template(
+                messages, documents, add_generation_prompt=True, return_dict=True, **kwargs).to(self._device)
         else:
             # Encode text
             input_encoding = self._tokenizer(inputs, **kwargs).to(self._device)
 
         return input_encoding
 
-    def generate(self, inputs, chat_template=False, system_prompt=None, tokenizer_kwargs={}, text_only=True, **kwargs):
+    def _construct_chat_template_from_mapping(self, inputs, unit_ranges):
+        """
+        Construct chat template given mapping from parts of the chat template to input units.
+
+        Args:
+            inputs (List[List[str]]):
+                A list of input texts segmented into units.
+            unit_ranges (dict):
+                Mapping from chat template parts to ranges of input units.
+
+        Returns:
+            conversation (List[Dict]):
+                List of chat messages.
+            documents (List[Dict] or None):
+                List of documents.
+        """
+        inputs_formatted = []
+        # Iterate over inputs
+        for inp in inputs:
+
+            # Construct conversation turn by turn
+            conversation = []
+            for turn_ranges in unit_ranges["conversation"]:
+                turn = {}
+                for key, rng in turn_ranges.items():
+                    # There should be only one range per turn
+                    turn["role"] = key
+                    turn["content"] = "".join(inp[rng[0] : rng[1]])
+                conversation.append(turn)
+
+            if "documents" in unit_ranges:
+                # Construct documents
+                documents = []
+                for doc_id, doc_ranges in enumerate(unit_ranges["documents"]):
+                    document = {"doc_id": doc_id + 1}
+                    for key, rng in doc_ranges.items():
+                        # Document text and possibly a title
+                        document[key] = "".join(inp[rng[0] : rng[1]])
+                    documents.append(document)
+            else:
+                documents = None
+
+        return conversation, documents
+
+    def generate(self, inputs, chat_template=False, system_prompt=None, unit_ranges=None, tokenizer_kwargs={}, text_only=True, **kwargs):
         """
         Generate response from model.
 
@@ -101,6 +154,8 @@ class HFModel(Model):
                 Whether to apply chat template.
             system_prompt (str or None):
                 System prompt to include in chat template.
+            unit_ranges (dict or None):
+                Mapping from chat template parts to ranges of input units.
             tokenizer_kwargs (dict):
                 Additional keyword arguments for tokenizer.
             text_only (bool):
@@ -117,7 +172,7 @@ class HFModel(Model):
                     output_token_count: Maximum number of generated tokens.
         """
         # Encode input text as token IDs
-        inputs = self.convert_input(inputs, chat_template, system_prompt, **tokenizer_kwargs)
+        inputs = self.convert_input(inputs, chat_template, system_prompt, unit_ranges, **tokenizer_kwargs)
         num_inputs, input_length = inputs["input_ids"].shape
 
         if num_inputs == 1 or not torch.cuda.is_available():
