@@ -69,7 +69,9 @@ class HFModel(Model):
         if chat_template:
             if isinstance(inputs, list) and isinstance(inputs[0], list) and unit_ranges is not None:
                 # Inputs are segmented into units and a mapping from chat template parts to units is given
-                messages, documents = self._construct_chat_template_from_mapping(inputs, unit_ranges)
+                inputs_formatted = self._construct_chat_template_from_mapping(inputs, unit_ranges)
+                # Encode chat
+                input_encoding = self._tokenizer(inputs_formatted, **kwargs).to(self._device)
             else:
                 if isinstance(inputs, list) and isinstance(inputs[0], list):
                     # Inputs are segmented into units but no mapping given, just join units
@@ -88,11 +90,10 @@ class HFModel(Model):
                                     {"role": "user", "content": inputs}]
                     else:
                         messages = [{"role": "user", "content": inputs}]
-                documents = None
 
             # Encode chat
             input_encoding = self._tokenizer.apply_chat_template(
-                messages, documents, add_generation_prompt=True, return_dict=True, **kwargs).to(self._device)
+                messages, add_generation_prompt=True, return_dict=True, **kwargs).to(self._device)
         else:
             # Encode text
             input_encoding = self._tokenizer(inputs, **kwargs).to(self._device)
@@ -110,10 +111,8 @@ class HFModel(Model):
                 Mapping from chat template parts to ranges of input units.
 
         Returns:
-            conversation (List[Dict]):
-                List of chat messages.
-            documents (List[Dict] or None):
-                List of documents.
+            inputs_formatted (List[str]):
+                List of inputs formatted according to chat template.
         """
         inputs_formatted = []
         # Iterate over inputs
@@ -141,7 +140,14 @@ class HFModel(Model):
             else:
                 documents = None
 
-        return conversation, documents
+            # Construct chat template from conversation and documents
+            input_formatted = self._tokenizer.apply_chat_template(conversation,
+                                                                  documents=documents,
+                                                                  add_generation_prompt=True,
+                                                                  tokenize=False)
+            inputs_formatted.append(input_formatted)
+
+        return inputs_formatted
 
     def generate(self, inputs, chat_template=False, system_prompt=None, unit_ranges=None, tokenizer_kwargs={}, text_only=True, **kwargs):
         """
