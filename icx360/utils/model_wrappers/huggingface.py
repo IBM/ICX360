@@ -91,9 +91,9 @@ class HFModel(Model):
                     else:
                         messages = [{"role": "user", "content": inputs}]
 
-            # Encode chat
-            input_encoding = self._tokenizer.apply_chat_template(
-                messages, add_generation_prompt=True, return_dict=True, **kwargs).to(self._device)
+                # Encode chat
+                input_encoding = self._tokenizer.apply_chat_template(
+                    messages, add_generation_prompt=True, return_dict=True, **kwargs).to(self._device)
         else:
             # Encode text
             input_encoding = self._tokenizer(inputs, **kwargs).to(self._device)
