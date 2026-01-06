@@ -27,14 +27,11 @@ dependencies = [
 	"toma",
 	"sentence-transformers",
 	"spacy",
-	"en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
- 	"en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl",
 	"pytest",
 	"python-dotenv>=1.1.0,<2.0.0",
 	"openai>=1.86.0,<2.0.0",
 	"datasets<4.0.0",
     "accelerate",
-	"detect-secrets @ git+https://github.com/ibm/detect-secrets.git@master#egg=detect-secrets",
 	"pre-commit"
 ]
 
