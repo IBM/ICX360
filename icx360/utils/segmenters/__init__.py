@@ -5,4 +5,8 @@ Module containing utilities for segmenting input text into units.
 """
 
 from .spacy import SpaCySegmenter
-from .utils import exclude_non_alphanumeric, find_unit_boundaries, merge_non_alphanumeric
+from .utils import (
+    exclude_non_alphanumeric,
+    find_unit_boundaries,
+    merge_non_alphanumeric,
+)

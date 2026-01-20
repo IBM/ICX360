@@ -113,13 +113,13 @@ pytest -m "vllm"
 If you find ICX360 useful, please star the repository and cite our work as follows:
 ```
 @misc{wei2025icx360,
-      title={{ICX360}: {In-Context eXplainability} 360 Toolkit}, 
+      title={{ICX360}: {In-Context eXplainability} 360 Toolkit},
       author={Dennis Wei and Ronny Luss and Xiaomeng Hu and Lucas Monteiro Paes and Pin-Yu Chen and Karthikeyan Natesan Ramamurthy and Erik Miehling and Inge Vejsbjerg and Hendrik Strobelt},
       year={2025},
       eprint={2511.10879},
       archivePrefix={arXiv},
       primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2511.10879}, 
+      url={https://arxiv.org/abs/2511.10879},
 }
 ```
 
@@ -139,4 +139,3 @@ Lets form a community around this toolkit! Ask a question, raise an issue, or ex
 ## IBM ❤️ Open Source AI
 
 The first release of ICX360 has been brought to you by IBM in the hope of building a larger community around this topic.
-
