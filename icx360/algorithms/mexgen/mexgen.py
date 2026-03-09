@@ -12,7 +12,11 @@ The MExGen framework is described in:
 from icx360.algorithms.lbbe import LocalBBExplainer
 from icx360.utils.model_wrappers import GeneratedOutput, HFModel
 from icx360.utils.scalarizers import ProbScalarizedModel, TextScalarizedModel
-from icx360.utils.segmenters import SpaCySegmenter, exclude_non_alphanumeric, merge_non_alphanumeric
+from icx360.utils.segmenters import (
+    SpaCySegmenter,
+    exclude_non_alphanumeric,
+    merge_non_alphanumeric,
+)
 
 
 class MExGenExplainer(LocalBBExplainer):

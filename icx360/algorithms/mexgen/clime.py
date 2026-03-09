@@ -265,6 +265,11 @@ def fit_linear_model(features, target, sample_weights, num_nonzeros, debias):
     if num_output_units == 1:
         coef, intercept = coef.squeeze(axis=1), intercept.squeeze()
     # Actual number(s) of non-zero coefficients
-    num_nonzeros = [len(active)] * num_output_units if type(active[0]) is int else map(len, active)
+    if type(active[0]) is int:
+        # Single active set (single list of indices) so number of non-zeros is same for all output units
+        num_nonzeros = [len(active)] * num_output_units
+    else:
+        # Multiple active sets, one for each output unit
+        num_nonzeros = map(len, active)
     # Negate coefficients so that important units have positive coefficients
     return -coef, intercept, num_nonzeros

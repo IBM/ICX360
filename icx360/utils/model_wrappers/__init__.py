@@ -5,5 +5,5 @@ Module containing wrappers for different types of models (used by MExGen and CEL
 """
 
 from .base_model_wrapper import GeneratedOutput, Model
-from .huggingface import HFModel
+from .huggingface import HFModel, PipelineHFModel
 from .vllm import VLLMModel

@@ -215,3 +215,109 @@ class HFModel(Model):
             output_obj = GeneratedOutput(output_ids=output_ids, output_text=output_text, output_token_count=output_token_count)
 
             return output_obj
+
+
+class PipelineHFModel(HFModel):
+    """
+    HFModel-compatible wrapper around a SteeringPipeline.
+
+    Attributes:
+        _pipeline (aisteer360.algorithms.core.SteeringPipeline):
+            AISteer360 SteeringPipeline object.
+        _model (transformers model object):
+            Underlying model object.
+        _tokenizer (transformers tokenizer):
+            Tokenizer corresponding to model.
+        _device (str):
+            Device on which the model resides.
+        _runtime_kwargs (dict or None):
+            Optional per-call parameters for controls at runtime.
+    """
+
+    def __init__(self, pipeline, tokenizer, runtime_kwargs: dict | None = None):
+        """
+        Initialize PipelineHFModel wrapper.
+
+        Args:
+            pipeline (aisteer360.algorithms.core.SteeringPipeline):
+                AISteer360 SteeringPipeline object.
+            tokenizer (transformers tokenizer):
+                Tokenizer corresponding to model.
+            runtime_kwargs (dict or None):
+                Optional per-call parameters for controls at runtime.
+        """
+        super().__init__(pipeline.model, tokenizer)
+
+        self._pipeline = pipeline
+        self._runtime_kwargs = runtime_kwargs
+
+    def generate(
+        self,
+        inputs,
+        chat_template: bool = False,
+        system_prompt: str | None = None,
+        tokenizer_kwargs: dict = {},
+        text_only: bool = True,
+        **kwargs,
+    ):
+        """
+        Generate response from SteeringPipeline.
+
+        Args:
+            inputs (str or List[str] or List[List[str]]):
+                A single input text, a list of input texts, or a list of segmented texts.
+            chat_template (bool):
+                Whether to apply chat template.
+            system_prompt (str or None):
+                System prompt to include in chat template.
+            tokenizer_kwargs (dict):
+                Additional keyword arguments for tokenizer.
+            text_only (bool):
+                Return only generated text (default) or an object containing additional outputs.
+            **kwargs (dict):
+                Additional keyword arguments for pipeline.
+
+        Returns:
+            output_obj (List[str] or icx360.utils.model_wrappers.GeneratedOutput):
+                If text_only == True, a list of generated texts corresponding to inputs.
+                If text_only == False, a GeneratedOutput object containing the following:
+                    output_ids: (num_inputs, output_token_count) torch.Tensor of generated token IDs.
+                    output_text: List of generated texts.
+                    output_token_count: Maximum number of generated tokens.
+        """
+
+        encoding = self.convert_input(
+            inputs,
+            chat_template=chat_template,
+            system_prompt=system_prompt,
+            **tokenizer_kwargs,
+        )
+        input_ids = encoding["input_ids"]
+        attention_mask = encoding["attention_mask"]
+        input_length = input_ids.shape[1]
+
+        runtime_kwargs = self._runtime_kwargs
+
+        with torch.no_grad():
+            output_ids = self._pipeline.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                runtime_kwargs=runtime_kwargs,
+                **kwargs,
+            )
+        # SteeringPipeline already truncates output tokens to generated tokens only, don't truncate again
+
+        output_text = self._tokenizer.batch_decode(
+            output_ids,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
+        )
+
+        if text_only:
+            return output_text
+        else:
+            return GeneratedOutput(
+                output_ids=output_ids,
+                output_text=output_text,
+                output_token_count=output_ids.shape[1],
+            )

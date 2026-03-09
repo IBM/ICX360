@@ -165,7 +165,12 @@ class PerturbCurveEvaluator:
             input_perturbed = mask_subsets(input_orig, subsets_replace, replacement_str)
 
             # 5) Compute model's scalarized outputs for perturbed inputs
-            output_perturbed[col] = self.scalarized_model.scalarize_output(inputs=input_perturbed, ref_output=explainer_dict["output_orig"], **model_params, **scalarize_params)
+            output_perturbed[col] = self.scalarized_model.scalarize_output(
+                inputs=input_perturbed,
+                ref_output=explainer_dict["output_orig"],
+                **model_params,
+                **scalarize_params,
+                )
 
             # Move scalarized outputs to CPU
             if type(output_perturbed[col]) is dict:

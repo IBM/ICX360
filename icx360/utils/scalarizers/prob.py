@@ -10,7 +10,7 @@ from math import ceil, log2
 
 import torch
 
-from icx360.utils.model_wrappers import HFModel, VLLMModel
+from icx360.utils.model_wrappers import HFModel, PipelineHFModel, VLLMModel
 from icx360.utils.scalarizers import Scalarizer
 from icx360.utils.segmenters import find_unit_boundaries
 from icx360.utils.toma import toma_get_probs
@@ -88,7 +88,9 @@ class ProbScalarizedModel(Scalarizer):
 
         # Compute log probabilities of reference output tokens conditioned on inputs
         # Also find token boundaries of units of the reference output
-        if isinstance(self.model, HFModel):
+        if isinstance(self.model, PipelineHFModel):
+            log_probs, boundaries = self._compute_log_probs_pipeline(inputs, ref_output, **kwargs)
+        elif isinstance(self.model, HFModel):
             log_probs, boundaries = self._compute_log_probs_hf(inputs, ref_output, **kwargs)
         elif isinstance(self.model, VLLMModel):
             log_probs, boundaries = self._compute_log_probs_vllm(inputs, ref_output, **kwargs)
@@ -100,12 +102,12 @@ class ProbScalarizedModel(Scalarizer):
         for u in range(num_output_units):
             # Transform probabilities
             if transformation in ("log_prob_mean", "prob_geo_mean"):
-                if boundaries[u+1] > boundaries[u]:
+                if boundaries[u + 1] > boundaries[u]:
                     # Mean of log probabilities (only if this unit has a non-zero number of tokens)
-                    probs_transformed[:, u] = log_probs[:, boundaries[u]:boundaries[u+1]].mean(dim=1)
+                    probs_transformed[:, u] = log_probs[:, boundaries[u] : boundaries[u + 1]].mean(dim=1)
             elif transformation in ("log_prob_sum", "prob_prod"):
                 # Sum of log probabilities
-                probs_transformed[:, u] = log_probs[:, boundaries[u]:boundaries[u+1]].sum(dim=1)
+                probs_transformed[:, u] = log_probs[:, boundaries[u] : boundaries[u + 1]].sum(dim=1)
             else:
                 raise ValueError("Transformation not recognized")
         if transformation.startswith("prob"):
@@ -181,6 +183,63 @@ class ProbScalarizedModel(Scalarizer):
         boundaries = find_unit_boundaries(ref_output.output_text[0], tokens)
 
         return log_probs, boundaries
+
+    def _compute_log_probs_pipeline(self, inputs, ref_output, **kwargs):
+        """
+        Compute log probabilities of reference output tokens conditioned on inputs when self.model is a PipelineHFModel.
+
+        Delegates to the underlying SteeringPipeline.compute_logprobs.
+
+        Args:
+            inputs (transformers.BatchEncoding):
+                BatchEncoding of inputs produced by tokenizer.
+            ref_output (icx360.utils.model_wrappers.GeneratedOutput):
+                Reference output object containing a sequence of token IDs (ref_output.output_ids).
+            **kwargs (dict):
+                Additional keyword arguments for model.
+
+        Returns:
+            log_probs ((num_inputs, gen_length) torch.Tensor):
+                Log probabilities of reference output tokens.
+            boundaries (List[int]):
+                Token boundaries of units of the reference output.
+        """
+        if not isinstance(self.model, PipelineHFModel):
+            raise TypeError("_compute_log_probs_pipeline requires a PipelineHFModel")
+
+        pipeline_model = self.model  # icx360.utils.model_wrappers.PipelineHFModel
+        pipeline = pipeline_model._pipeline  # aisteer360.algorithms.core.SteeringPipeline
+
+        # inputs is a transformers.BatchEncoding from convert_input()
+        input_ids = inputs["input_ids"]
+        attention_mask = inputs.get("attention_mask", None)
+
+        # reference output token IDs
+        ref_output_ids = ref_output.output_ids
+        device = pipeline_model._device
+
+        if ref_output_ids.device != device:
+            ref_output_ids = ref_output_ids.to(device)
+
+        with torch.no_grad():
+            log_probs = pipeline.compute_logprobs(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                ref_output_ids=ref_output_ids,
+                runtime_kwargs=pipeline_model._runtime_kwargs,
+                **kwargs,
+            )
+
+        # Get list of reference output tokens
+        tokens = []
+        for id in ref_output_ids[0]:
+            tokens.append("" if id in self.model._tokenizer.all_special_ids else self.model._tokenizer.decode(id))
+        # Find token boundaries of units of the reference output
+        boundaries = find_unit_boundaries(ref_output.output_text[0], tokens)
+
+        # log_probs must be shape: (num_inputs, gen_length)
+        return log_probs, boundaries
+
 
     def _compute_log_probs_vllm(self, inputs, ref_output, max_inputs_per_call=200, **kwargs):
         """

@@ -48,6 +48,21 @@ mkdocs serve
 
 The server will be available at [http://localhost:8000](http://localhost:8000).
 
+## Secret scanning
+This repository uses IBM's [detect-secrets](https://github.com/ibm/detect-secrets) to scan for secrets before the code is pushed to GitHub. Follow installation instructions in their repository: https://github.com/ibm/detect-secrets?tab=readme-ov-file#example-usage
+
+To update the secrets database manually, run:
+```
+detect-secrets scan --update .secrets.baseline
+```
+To audit detected secrets, use:
+```
+detect-secrets audit .secrets.baseline
+```
+If the pre-commit hook raises an error but the audit command succeeds with just `Nothing to audit!` then run `detect-secrets scan --update .secrets.baseline` to perform a full scan and then repeat the audit command.
+
+
+
 ### Pushing Documentation to GitHub Pages
 
 Run the following:
