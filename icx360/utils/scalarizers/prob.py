@@ -40,7 +40,9 @@ class ProbScalarizedModel(Scalarizer):
         if not isinstance(model, HFModel) and not isinstance(model, VLLMModel):
             raise TypeError("Model must be a HFModel (HuggingFace) or VLLMModel for ProbScalarizedModel")
 
-    def scalarize_output(self, inputs=None, outputs=None, ref_input=None, ref_output=None, chat_template=False, system_prompt=None, tokenizer_kwargs={}, transformation="log_prob_mean", **kwargs):
+    def scalarize_output(self, inputs=None, outputs=None, ref_input=None, ref_output=None,
+                         chat_template=False, system_prompt=None, unit_ranges=None, tokenizer_kwargs={},
+                         transformation="log_prob_mean", **kwargs):
         """
         Compute probability of generating reference output (or each unit thereof) conditioned on inputs.
 
@@ -58,6 +60,8 @@ class ProbScalarizedModel(Scalarizer):
                 Whether to apply chat template.
             system_prompt (str or None):
                 System prompt to include in chat template.
+            unit_ranges (dict or None):
+                Mapping from chat template parts to ranges of input units.
             tokenizer_kwargs (dict):
                 Additional keyword arguments for tokenizer.
             transformation (str, optional):
@@ -77,7 +81,7 @@ class ProbScalarizedModel(Scalarizer):
         if inputs is None:
             raise ValueError("inputs must be provided for ProbScalarizedModel.scalarize_output()")
         else:
-            inputs = self.model.convert_input(inputs, chat_template, system_prompt, **tokenizer_kwargs)
+            inputs = self.model.convert_input(inputs, chat_template, system_prompt, unit_ranges, **tokenizer_kwargs)
         # Check for reference output
         if ref_output is None:
             raise ValueError("ref_output must be provided for ProbScalarizedModel.scalarize_output()")
